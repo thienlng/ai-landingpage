@@ -14,10 +14,10 @@ const COLORS = {
 }
 
 const APPS = [
-    { name: 'CoDev', color: COLORS.white, radius: 4.0, speed: 0.5, yOffset: 0.5 },
-    { name: 'PowerSaving', color: COLORS.lightRed, radius: 4.8, speed: 0.3, yOffset: -0.5 },
-    { name: 'Chatbot', color: COLORS.red, radius: 3.5, speed: 0.7, yOffset: 0 },
-    { name: 'PCTT', color: COLORS.darkRed, radius: 4.4, speed: 0.4, yOffset: 0.8 },
+    { name: 'CoDev', color: COLORS.white, radius: 4.0, speed: 0.2, yOffset: 0.5 },
+    { name: 'PowerSaving', color: COLORS.lightRed, radius: 4.8, speed: 0.1, yOffset: -0.5 },
+    { name: 'Chatbot', color: COLORS.red, radius: 3.5, speed: 0.3, yOffset: 0 },
+    { name: 'PCTT', color: COLORS.darkRed, radius: 4.4, speed: 0.15, yOffset: 0.8 },
 ]
 
 export default function SatelliteApps() {
@@ -26,7 +26,7 @@ export default function SatelliteApps() {
     useFrame((state) => {
         if (groupRef.current) {
             // Rotate the whole system slowly
-            groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.05
+            groupRef.current.rotation.y = state.clock.getElapsedTime() * 0.02
         }
     })
 

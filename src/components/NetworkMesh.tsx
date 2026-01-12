@@ -9,6 +9,37 @@ import { Text } from '@react-three/drei'
 const NODE_COUNT = 25
 const EARTH_RADIUS = 6.5
 
+// --- Shared Geometries (Created once) ---
+const baseGeometry = new THREE.CylinderGeometry(0.02, 0.08, 0.5, 5)
+const crossbar1Geometry = new THREE.BoxGeometry(0.12, 0.01, 0.01)
+const crossbar2Geometry = new THREE.BoxGeometry(0.08, 0.01, 0.01)
+const antennaLineGeometry = new THREE.CylinderGeometry(0.005, 0.005, 0.4, 3)
+const antennaTipGeometry = new THREE.SphereGeometry(0.03, 6, 6)
+const waveGeometry = new THREE.RingGeometry(0.05, 0.06, 24)
+
+// --- Shared Materials (Created once) ---
+// We can use scaling/tinting for variations, or just pre-define the 3 types.
+const materials = {
+    '3G': {
+        primary: new THREE.MeshStandardMaterial({ color: '#8B8B8B', emissive: '#8B8B8B', emissiveIntensity: 0.5 }),
+        basic: new THREE.MeshBasicMaterial({ color: '#8B8B8B' }),
+        wave: new THREE.MeshBasicMaterial({ color: '#8B8B8B', transparent: true, opacity: 0, side: THREE.DoubleSide }),
+        glowColor: '#8B8B8B'
+    },
+    '4G': {
+        primary: new THREE.MeshStandardMaterial({ color: '#E60012', emissive: '#E60012', emissiveIntensity: 0.5 }),
+        basic: new THREE.MeshBasicMaterial({ color: '#E60012' }),
+        wave: new THREE.MeshBasicMaterial({ color: '#E60012', transparent: true, opacity: 0, side: THREE.DoubleSide }),
+        glowColor: '#E60012'
+    },
+    '5G': {
+        primary: new THREE.MeshStandardMaterial({ color: '#FFFFFF', emissive: '#FFFFFF', emissiveIntensity: 0.5 }),
+        basic: new THREE.MeshBasicMaterial({ color: '#FFFFFF' }),
+        wave: new THREE.MeshBasicMaterial({ color: '#FFFFFF', transparent: true, opacity: 0, side: THREE.DoubleSide }),
+        glowColor: '#FFFFFF'
+    }
+}
+
 export default function NetworkMesh() {
     const groupRef = useRef<THREE.Group>(null)
 
@@ -20,12 +51,11 @@ export default function NetworkMesh() {
         const types = ['3G', '4G', '5G'] as const
 
         for (let i = 0; i < NODE_COUNT; i++) {
-            const lon = ga * i;
             // Distribute lat from 0 (top) down to some angle.
             // i goes 0..NODE_COUNT.
             // To be on top cap, z (local up) should be close to 1.
             // Let's use 1 - (i / (NODE_COUNT - 1)) * coverage
-            const lat = Math.asin(-1 + 2 * i / (NODE_COUNT * 2 + 1)); // This is full sphere
+            // const lat = Math.asin(-1 + 2 * i / (NODE_COUNT * 2 + 1)); // This is full sphere
 
             // i / (NODE_COUNT-1) from 0 to 1.
             const t = i / (NODE_COUNT - 1)
@@ -49,7 +79,7 @@ export default function NetworkMesh() {
     // Constraint: 2-4 connections per node
     const linesGeometry = useMemo(() => {
         const points: THREE.Vector3[] = []
-        const SEGMENTS = 12
+        const SEGMENTS = 8 // Reduced segments for performance
         const connections = Array.from({ length: nodes.length }, () => new Set<number>())
 
         // 1. Build Adjacency Graph
@@ -80,9 +110,6 @@ export default function NetworkMesh() {
         // Ensure minimum connectivity (at least 2 if possible)
         for (let i = 0; i < nodes.length; i++) {
             if (connections[i].size < 2) {
-                // Force connect to nearest valid neighbor even if they have 4? 
-                // Or just look for nearest even if already connected?
-                // Let's just create points regardless of saturation if we are under-connected
                 let nearest = -1
                 let minD = Infinity
                 for (let j = 0; j < nodes.length; j++) {
@@ -204,12 +231,21 @@ export default function NetworkMesh() {
 }
 
 function BTSTower({ position, quaternion, type, delay }: { position: THREE.Vector3, quaternion: THREE.Quaternion, type: '3G' | '4G' | '5G', delay: number }) {
-    const colors = {
-        '3G': { primary: '#8B8B8B', glow: '#8B8B8B' },
-        '4G': { primary: '#E60012', glow: '#E60012' },
-        '5G': { primary: '#FFFFFF', glow: '#FFFFFF' }
-    }
-    const color = colors[type]
+    const matSet = materials[type]
+
+    // We clone materials for waves to animate opacity independently if needed, 
+    // OR we can just scale them (transform animations are cheaper than material updates).
+    // Material updates trigger shader recompiles or uniform updates.
+    // Ideally we use scale for animations and constant opacity, or shared material with instance props (complex).
+    // For now, let's keep material clone ONLY for waves to allow opacity animation, but key it properly.
+    // Actually, creating 25 * 3 materials is still 75 materials.
+    // For optimization, lets use SCALE animation only to hide/show waves, and keep opacity constant or pre-baked.
+    // Or, sadly, we need opacity fading.
+    // Let's create specific cloned materials just for this instance's waves.
+
+    const waveMat1 = useMemo(() => matSet.wave.clone(), [matSet])
+    const waveMat2 = useMemo(() => matSet.wave.clone(), [matSet])
+    const waveMat3 = useMemo(() => matSet.wave.clone(), [matSet])
 
     const waveRef1 = useRef<THREE.Mesh>(null)
     const waveRef2 = useRef<THREE.Mesh>(null)
@@ -223,86 +259,60 @@ function BTSTower({ position, quaternion, type, delay }: { position: THREE.Vecto
         if (waveRef1.current) {
             const s = (t * 2) % 4
             waveRef1.current.scale.setScalar(1 + s * 0.5)
-            const m = waveRef1.current.material as THREE.MeshBasicMaterial
-            m.opacity = Math.max(0, (0.5 - s / 8))
+            waveMat1.opacity = Math.max(0, (0.5 - s / 8))
         }
         if (waveRef2.current) {
             const s = (t * 2 + 1.3) % 4
             waveRef2.current.scale.setScalar(1 + s * 0.5)
-            const m = waveRef2.current.material as THREE.MeshBasicMaterial
-            m.opacity = Math.max(0, (0.5 - s / 8))
+            waveMat2.opacity = Math.max(0, (0.5 - s / 8))
         }
         if (waveRef3.current) {
             const s = (t * 2 + 2.6) % 4
             waveRef3.current.scale.setScalar(1 + s * 0.5)
-            const m = waveRef3.current.material as THREE.MeshBasicMaterial
-            m.opacity = Math.max(0, (0.5 - s / 8))
+            waveMat3.opacity = Math.max(0, (0.5 - s / 8))
         }
     })
 
     return (
-        <group position={position} quaternion={quaternion}>
-            {/* Tower Base (Trapezoid/Pyramid-ish) - Adapted from SVG path */}
-            {/* SVG Path: M0 0 L-8 25 L8 25 Z -> Inverted Y in 3D, so Top 0, Bottom +Y */}
-            {/* We map 25 SVG units to approx 0.5 3D units */}
-            <mesh position={[0, 0.25, 0]}>
-                <cylinderGeometry args={[0.02, 0.08, 0.5, 4]} />
-                <meshStandardMaterial color={color.primary} emissive={color.primary} emissiveIntensity={0.5} />
-            </mesh>
+        <group position={position} quaternion={quaternion} scale={0.6} >
+            {/* Tower Base */}
+            < mesh position={[0, 0.25, 0]} geometry={baseGeometry} material={matSet.primary} />
 
-            {/* Cross bars - Adapted from SVG lines */}
-            <mesh position={[0, 0.15, 0]} rotation={[0, Math.PI / 4, 0]}>
-                <boxGeometry args={[0.12, 0.01, 0.01]} />
-                <meshBasicMaterial color={color.primary} />
-            </mesh>
-            <mesh position={[0, 0.3, 0]} rotation={[0, Math.PI / 4, 0]}>
-                <boxGeometry args={[0.08, 0.01, 0.01]} />
-                <meshBasicMaterial color={color.primary} />
-            </mesh>
+            {/* Cross bars */}
+            <mesh position={[0, 0.15, 0]} rotation={[0, Math.PI / 4, 0]} geometry={crossbar1Geometry} material={matSet.basic} />
+            <mesh position={[0, 0.3, 0]} rotation={[0, Math.PI / 4, 0]} geometry={crossbar2Geometry} material={matSet.basic} />
 
             {/* Antenna Line */}
-            <mesh position={[0, 0.6, 0]}>
-                <cylinderGeometry args={[0.005, 0.005, 0.4, 4]} />
-                <meshBasicMaterial color={color.primary} />
-            </mesh>
+            <mesh position={[0, 0.6, 0]} geometry={antennaLineGeometry} material={matSet.basic} />
 
-            {/* Antenna Top Circle - Sphere in 3D */}
-            <mesh position={[0, 0.8, 0]}>
-                <sphereGeometry args={[0.03, 8, 8]} />
-                <meshBasicMaterial color={color.primary} />
-            </mesh>
+            {/* Antenna Top Circle */}
+            <mesh position={[0, 0.8, 0]} geometry={antennaTipGeometry} material={matSet.basic} />
 
             {/* Glow effect */}
-            <pointLight position={[0, 0.7, 0]} distance={1} intensity={2} color={color.glow} />
+            <pointLight position={[0, 0.7, 0]} distance={1} intensity={2} color={matSet.glowColor} />
 
             {/* Type Label */}
             <group position={[0, 0.95, 0]}>
                 <Text
-                    fontSize={0.15}
-                    color={color.primary}
+                    fontSize={2} // Increased font size to counter scale=0.2 of parent? No, wait. Parent scale 0.2 means this text is tiny.
+                    // If we want readable text on small towers, the text needs to be relatively large in local space.
+                    // User set scale 0.2 on group. 0.15 * 0.2 = 0.03 world size. That's very small.
+                    // Let's bump local fontSize to 1.0 so it's visible.
+                    scale={0.5}
+                    color={matSet.glowColor}
                     anchorX="center"
                     anchorY="middle"
-                // Using default font or one available if Orbitron is loaded globally, otherwise default
                 >
                     {type}
                 </Text>
             </group>
 
-            {/* Signal Waves - Adapted from motion.path */}
+            {/* Signal Waves */}
             <group position={[0, 0.8, 0]} rotation={[Math.PI / 2, 0, 0]}>
-                <mesh ref={waveRef1}>
-                    <ringGeometry args={[0.05, 0.06, 32]} />
-                    <meshBasicMaterial color={color.primary} transparent opacity={0} side={THREE.DoubleSide} />
-                </mesh>
-                <mesh ref={waveRef2}>
-                    <ringGeometry args={[0.05, 0.06, 32]} />
-                    <meshBasicMaterial color={color.primary} transparent opacity={0} side={THREE.DoubleSide} />
-                </mesh>
-                <mesh ref={waveRef3}>
-                    <ringGeometry args={[0.05, 0.06, 32]} />
-                    <meshBasicMaterial color={color.primary} transparent opacity={0} side={THREE.DoubleSide} />
-                </mesh>
+                <mesh ref={waveRef1} geometry={waveGeometry} material={waveMat1} />
+                <mesh ref={waveRef2} geometry={waveGeometry} material={waveMat2} />
+                <mesh ref={waveRef3} geometry={waveGeometry} material={waveMat3} />
             </group>
-        </group>
+        </group >
     )
 }

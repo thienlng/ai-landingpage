@@ -294,11 +294,7 @@ function BTSTower({ position, quaternion, type, delay }: { position: THREE.Vecto
             {/* Type Label */}
             <group position={[0, 0.95, 0]}>
                 <Text
-                    fontSize={2} // Increased font size to counter scale=0.2 of parent? No, wait. Parent scale 0.2 means this text is tiny.
-                    // If we want readable text on small towers, the text needs to be relatively large in local space.
-                    // User set scale 0.2 on group. 0.15 * 0.2 = 0.03 world size. That's very small.
-                    // Let's bump local fontSize to 1.0 so it's visible.
-                    scale={0.5}
+                    fontSize={0.25}
                     color={matSet.glowColor}
                     anchorX="center"
                     anchorY="middle"

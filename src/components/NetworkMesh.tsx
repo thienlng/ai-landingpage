@@ -3,7 +3,7 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { Html } from '@react-three/drei'
+import { Text } from '@react-three/drei'
 
 // Number of BTS nodes
 const NODE_COUNT = 25
@@ -17,11 +17,7 @@ export default function NetworkMesh() {
         const temp = []
         const phi = (Math.sqrt(5) + 1) / 2 - 1; // Golden Ratio
         const ga = phi * 2 * Math.PI;
-
-        // We want nodes on the "upper" part. 
-        // In the original code, we filtered y > 1.5 with Radius 6.5.
-        // Center is 0,-9,0. Radius 6.5. Top is at 0,-2.5,0.
-        // If we want them visible on top, let's distribute them on the top cap.
+        const types = ['3G', '4G', '5G'] as const
 
         for (let i = 0; i < NODE_COUNT; i++) {
             const lon = ga * i;
@@ -30,11 +26,6 @@ export default function NetworkMesh() {
             // To be on top cap, z (local up) should be close to 1.
             // Let's use 1 - (i / (NODE_COUNT - 1)) * coverage
             const lat = Math.asin(-1 + 2 * i / (NODE_COUNT * 2 + 1)); // This is full sphere
-
-            // Better customized approach for cap:
-            // We want points distributed around the "Pole" of the sphere which is Y axis in world.
-            // But let's stick to the fibonacci spiral on a sphere and just pick the ones we want?
-            // Actually, for fixed count on a cap, we can just map the index range.
 
             // i / (NODE_COUNT-1) from 0 to 1.
             const t = i / (NODE_COUNT - 1)
@@ -45,7 +36,11 @@ export default function NetworkMesh() {
             const y = EARTH_RADIUS * Math.cos(inclination) // This is local Y (up)
             const z = EARTH_RADIUS * Math.sin(inclination) * Math.sin(azimuth)
 
-            temp.push(new THREE.Vector3(x, y, z))
+            temp.push({
+                pos: new THREE.Vector3(x, y, z),
+                type: types[Math.floor(Math.random() * types.length)],
+                delay: Math.random() * 2
+            })
         }
         return temp
     }, [])
@@ -62,7 +57,7 @@ export default function NetworkMesh() {
             const potential = []
             for (let j = 0; j < nodes.length; j++) {
                 if (i !== j) {
-                    potential.push({ id: j, dist: nodes[i].distanceTo(nodes[j]) })
+                    potential.push({ id: j, dist: nodes[i].pos.distanceTo(nodes[j].pos) })
                 }
             }
             potential.sort((a, b) => a.dist - b.dist)
@@ -92,7 +87,7 @@ export default function NetworkMesh() {
                 let minD = Infinity
                 for (let j = 0; j < nodes.length; j++) {
                     if (i !== j && !connections[i].has(j)) {
-                        const d = nodes[i].distanceTo(nodes[j])
+                        const d = nodes[i].pos.distanceTo(nodes[j].pos)
                         if (d < minD) { minD = d; nearest = j }
                     }
                 }
@@ -112,8 +107,8 @@ export default function NetworkMesh() {
                 if (processed.has(key)) return
                 processed.add(key)
 
-                const start = nodes[i]
-                const end = nodes[j]
+                const start = nodes[i].pos
+                const end = nodes[j].pos
 
                 for (let k = 0; k < SEGMENTS; k++) {
                     const t1 = k / SEGMENTS
@@ -165,7 +160,7 @@ export default function NetworkMesh() {
                 // Target the HEAD of the tower. 
                 // Tower head is at local Y=0.6. The node is at EARTH_RADIUS.
                 // So target = normalized(node) * (EARTH_RADIUS + 0.6)
-                const nodePos = nodes[signal.targetIndex]
+                const nodePos = nodes[signal.targetIndex].pos
                 const end = nodePos.clone().normalize().multiplyScalar(EARTH_RADIUS + 0.6)
 
                 // Lerp position
@@ -186,11 +181,11 @@ export default function NetworkMesh() {
         <group position={[0, -9, 0]}>
             <group ref={groupRef}>
                 {/* Nodes */}
-                {nodes.map((pos, i) => {
+                {nodes.map((node, i) => {
                     const up = new THREE.Vector3(0, 1, 0)
-                    const normal = pos.clone().normalize()
+                    const normal = node.pos.clone().normalize()
                     const quaternion = new THREE.Quaternion().setFromUnitVectors(up, normal)
-                    return <Tower key={i} position={pos} quaternion={quaternion} />
+                    return <BTSTower key={i} position={node.pos} quaternion={quaternion} type={node.type} delay={node.delay} />
                 })}
 
                 {/* Connections */}
@@ -208,104 +203,104 @@ export default function NetworkMesh() {
     )
 }
 
-function Tower({ position, quaternion }: { position: THREE.Vector3, quaternion: THREE.Quaternion }) {
-    const waveRef = useRef<THREE.Mesh>(null)
+function BTSTower({ position, quaternion, type, delay }: { position: THREE.Vector3, quaternion: THREE.Quaternion, type: '3G' | '4G' | '5G', delay: number }) {
+    const colors = {
+        '3G': { primary: '#8B8B8B', glow: '#8B8B8B' },
+        '4G': { primary: '#E60012', glow: '#E60012' },
+        '5G': { primary: '#FFFFFF', glow: '#FFFFFF' }
+    }
+    const color = colors[type]
+
+    const waveRef1 = useRef<THREE.Mesh>(null)
     const waveRef2 = useRef<THREE.Mesh>(null)
     const waveRef3 = useRef<THREE.Mesh>(null)
 
     useFrame((state) => {
-        const t = state.clock.getElapsedTime()
-        if (waveRef.current) {
-            const scale = (t * 2) % 4
-            waveRef.current.scale.setScalar(1 + scale)
-            const material = waveRef.current.material as THREE.MeshBasicMaterial
-            material.opacity = Math.max(0, 0.8 - scale / 4)
+        const t = state.clock.getElapsedTime() + delay
+
+        // Animate waves
+        // Using modulo to create repeated expanding waves
+        if (waveRef1.current) {
+            const s = (t * 2) % 4
+            waveRef1.current.scale.setScalar(1 + s * 0.5)
+            const m = waveRef1.current.material as THREE.MeshBasicMaterial
+            m.opacity = Math.max(0, (0.5 - s / 8))
         }
         if (waveRef2.current) {
-            const scale = ((t * 2) + 1.3) % 4
-            waveRef2.current.scale.setScalar(1 + scale)
-            const material = waveRef2.current.material as THREE.MeshBasicMaterial
-            material.opacity = Math.max(0, 0.8 - scale / 4)
+            const s = (t * 2 + 1.3) % 4
+            waveRef2.current.scale.setScalar(1 + s * 0.5)
+            const m = waveRef2.current.material as THREE.MeshBasicMaterial
+            m.opacity = Math.max(0, (0.5 - s / 8))
         }
         if (waveRef3.current) {
-            const scale = ((t * 2) + 2.6) % 4
-            waveRef3.current.scale.setScalar(1 + scale)
-            const material = waveRef3.current.material as THREE.MeshBasicMaterial
-            material.opacity = Math.max(0, 0.8 - scale / 4)
+            const s = (t * 2 + 2.6) % 4
+            waveRef3.current.scale.setScalar(1 + s * 0.5)
+            const m = waveRef3.current.material as THREE.MeshBasicMaterial
+            m.opacity = Math.max(0, (0.5 - s / 8))
         }
     })
 
     return (
         <group position={position} quaternion={quaternion}>
-            {/* Realistic Lattice Tower Approximation */}
-
-            {/* Segment 1: Base (Red) */}
-            <mesh position={[0, 0.1, 0]}>
-                <cylinderGeometry args={[0.08, 0.12, 0.2, 4]} />
-                <meshBasicMaterial color="#EE0033" />
+            {/* Tower Base (Trapezoid/Pyramid-ish) - Adapted from SVG path */}
+            {/* SVG Path: M0 0 L-8 25 L8 25 Z -> Inverted Y in 3D, so Top 0, Bottom +Y */}
+            {/* We map 25 SVG units to approx 0.5 3D units */}
+            <mesh position={[0, 0.25, 0]}>
+                <cylinderGeometry args={[0.02, 0.08, 0.5, 4]} />
+                <meshStandardMaterial color={color.primary} emissive={color.primary} emissiveIntensity={0.5} />
             </mesh>
 
-            {/* Segment 2: White */}
-            <mesh position={[0, 0.3, 0]}>
-                <cylinderGeometry args={[0.06, 0.08, 0.2, 4]} />
-                <meshBasicMaterial color="#ffffff" />
+            {/* Cross bars - Adapted from SVG lines */}
+            <mesh position={[0, 0.15, 0]} rotation={[0, Math.PI / 4, 0]}>
+                <boxGeometry args={[0.12, 0.01, 0.01]} />
+                <meshBasicMaterial color={color.primary} />
+            </mesh>
+            <mesh position={[0, 0.3, 0]} rotation={[0, Math.PI / 4, 0]}>
+                <boxGeometry args={[0.08, 0.01, 0.01]} />
+                <meshBasicMaterial color={color.primary} />
             </mesh>
 
-            {/* Segment 3: Red */}
-            <mesh position={[0, 0.5, 0]}>
-                <cylinderGeometry args={[0.04, 0.06, 0.2, 4]} />
-                <meshBasicMaterial color="#EE0033" />
+            {/* Antenna Line */}
+            <mesh position={[0, 0.6, 0]}>
+                <cylinderGeometry args={[0.005, 0.005, 0.4, 4]} />
+                <meshBasicMaterial color={color.primary} />
             </mesh>
 
-            {/* Segment 4: Top White Spire */}
-            <mesh position={[0, 0.7, 0]}>
-                <cylinderGeometry args={[0.01, 0.04, 0.2, 4]} />
-                <meshBasicMaterial color="#ffffff" />
+            {/* Antenna Top Circle - Sphere in 3D */}
+            <mesh position={[0, 0.8, 0]}>
+                <sphereGeometry args={[0.03, 8, 8]} />
+                <meshBasicMaterial color={color.primary} />
             </mesh>
 
-            {/* Platform 1 */}
-            <mesh position={[0, 0.55, 0]}>
-                <cylinderGeometry args={[0.1, 0.1, 0.01, 8]} />
-                <meshBasicMaterial color="#444" />
-            </mesh>
+            {/* Glow effect */}
+            <pointLight position={[0, 0.7, 0]} distance={1} intensity={2} color={color.glow} />
 
-            {/* Antennas on Platform */}
-            <group position={[0, 0.55, 0]}>
-                {[0, 1, 2].map(i => (
-                    <mesh key={i} position={[0.07, 0.08, 0]} rotation={[0, i * (Math.PI * 2 / 3), 0]}>
-                        <boxGeometry args={[0.02, 0.12, 0.01]} />
-                        <meshBasicMaterial color="#EE0033" />
-                    </mesh>
-                ))}
-                <group rotation={[0, Math.PI, 0]}>
-                    <mesh position={[0.07, 0.08, 0]}>
-                        <boxGeometry args={[0.02, 0.12, 0.01]} />
-                        <meshBasicMaterial color="#EE0033" />
-                    </mesh>
-                    <mesh position={[-0.04, 0.08, 0.06]}>
-                        <boxGeometry args={[0.02, 0.12, 0.01]} />
-                        <meshBasicMaterial color="#EE0033" />
-                    </mesh>
-                    <mesh position={[-0.04, 0.08, -0.06]}>
-                        <boxGeometry args={[0.02, 0.12, 0.01]} />
-                        <meshBasicMaterial color="#EE0033" />
-                    </mesh>
-                </group>
+            {/* Type Label */}
+            <group position={[0, 0.95, 0]}>
+                <Text
+                    fontSize={0.15}
+                    color={color.primary}
+                    anchorX="center"
+                    anchorY="middle"
+                // Using default font or one available if Orbitron is loaded globally, otherwise default
+                >
+                    {type}
+                </Text>
             </group>
 
-            {/* Wave Signals - Emitting from platform */}
-            <group position={[0, 0.6, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-                <mesh ref={waveRef}>
-                    <ringGeometry args={[0.1, 0.12, 16]} />
-                    <meshBasicMaterial color="#ffffff" transparent opacity={0} side={THREE.DoubleSide} />
+            {/* Signal Waves - Adapted from motion.path */}
+            <group position={[0, 0.8, 0]} rotation={[Math.PI / 2, 0, 0]}>
+                <mesh ref={waveRef1}>
+                    <ringGeometry args={[0.05, 0.06, 32]} />
+                    <meshBasicMaterial color={color.primary} transparent opacity={0} side={THREE.DoubleSide} />
                 </mesh>
                 <mesh ref={waveRef2}>
-                    <ringGeometry args={[0.1, 0.12, 16]} />
-                    <meshBasicMaterial color="#ffffff" transparent opacity={0} side={THREE.DoubleSide} />
+                    <ringGeometry args={[0.05, 0.06, 32]} />
+                    <meshBasicMaterial color={color.primary} transparent opacity={0} side={THREE.DoubleSide} />
                 </mesh>
                 <mesh ref={waveRef3}>
-                    <ringGeometry args={[0.1, 0.12, 16]} />
-                    <meshBasicMaterial color="#ffffff" transparent opacity={0} side={THREE.DoubleSide} />
+                    <ringGeometry args={[0.05, 0.06, 32]} />
+                    <meshBasicMaterial color={color.primary} transparent opacity={0} side={THREE.DoubleSide} />
                 </mesh>
             </group>
         </group>

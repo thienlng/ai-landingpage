@@ -9,72 +9,52 @@ export default function Home() {
       {/* 3D Background */}
       <Scene3D />
 
-      {/* Content Overlay */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6">
-        <nav className="absolute top-0 flex w-full items-center justify-between p-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="text-2xl font-bold tracking-tighter"
-          >
-            NEURAL<span className="text-indigo-500">LABS</span>
-          </motion.div>
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="hidden space-x-8 text-sm font-medium text-zinc-400 sm:flex"
-          >
-            <a href="#" className="transition-colors hover:text-white">Vision</a>
-            <a href="#" className="transition-colors hover:text-white">Technology</a>
-            <a href="#" className="transition-colors hover:text-white">Ecosystem</a>
-          </motion.div>
-        </nav>
+      {/* Scanlines Overlay - Fixed via CSS class */}
+      <div className="scanlines fixed inset-0 z-20 pointer-events-none opacity-50"></div>
 
-        <div className="max-w-4xl text-center">
+      {/* Content Overlay */}
+      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-6 pointer-events-none pt-32">
+
+        {/* <div className="text-center pointer-events-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="mb-2"
+          >
+            <h2 className="text-sm md:text-md uppercase tracking-[0.3em] text-[#FF3344] font-medium text-glow-subtle">The Brain of Viettel's Network</h2>
+          </motion.div>
+
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="mb-6 text-6xl font-extrabold tracking-tight sm:text-8xl"
+            transition={{ delay: 0.2, duration: 0.8 }}
+            className="text-7xl font-bold tracking-tighter sm:text-9xl mb-4"
+            style={{ fontFamily: "'Orbitron', sans-serif" }}
           >
-            The Future of <br />
-            <span className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              Spatial Intelligence
-            </span>
+            <span className="text-[#E60012] text-glow">Net</span><span className="text-white text-glow">Mind</span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mx-auto mb-10 max-w-2xl text-lg text-zinc-400 sm:text-xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+            className="max-w-xl mx-auto text-zinc-400 text-lg sm:text-xl font-light leading-relaxed"
           >
-            Harnessing the power of decentralized 3D computing to build the next generation of digital experiences.
+            Operating, managing, and optimizing the entire telecom universe.
           </motion.p>
+        </div> */}
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="flex flex-col items-center justify-center gap-4 sm:flex-row"
-          >
-            <button className="rounded-full bg-white px-8 py-4 font-semibold text-black transition-transform hover:scale-105 active:scale-95">
-              Get Started
-            </button>
-            <button className="rounded-full border border-zinc-800 bg-white/5 px-8 py-4 font-semibold backdrop-blur-xl transition-all hover:bg-white/10">
-              View Documentation
-            </button>
-          </motion.div>
-        </div>
+        {/* Floating details or navigation could go here, but kept minimal as requested */}
 
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-          className="absolute bottom-10 flex flex-col items-center gap-2 text-zinc-500"
+          transition={{ delay: 2, duration: 1 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-auto"
         >
-          <span className="text-xs uppercase tracking-widest">Scroll to explore</span>
-          <div className="h-12 w-px bg-gradient-to-b from-indigo-500 to-transparent"></div>
+          <div className="w-[1px] h-16 bg-gradient-to-b from-transparent via-white/20 to-transparent"></div>
+          {/* <span className="text-[10px] uppercase tracking-widest text-white/30">Explore the Ecosystem</span> */}
         </motion.div>
       </div>
     </main>

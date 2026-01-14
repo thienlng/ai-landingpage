@@ -199,15 +199,15 @@ function DataRings() {
     return (
         <group>
             <mesh ref={ring1Ref}>
-                <torusGeometry args={[3, 0.02, 16, 100]} />
+                <torusGeometry args={[2.25, 0.02, 16, 100]} />
                 <meshBasicMaterial color="#FFFFFF" transparent opacity={0.5} />
             </mesh>
             <mesh ref={ring2Ref}>
-                <torusGeometry args={[3.5, 0.015, 16, 100]} />
+                <torusGeometry args={[2.75, 0.015, 16, 100]} />
                 <meshBasicMaterial color="#E60012" transparent opacity={0.4} />
             </mesh>
             <mesh ref={ring3Ref}>
-                <torusGeometry args={[4, 0.01, 16, 100]} />
+                <torusGeometry args={[3.25, 0.01, 16, 100]} />
                 <meshBasicMaterial color="#FF3344" transparent opacity={0.3} />
             </mesh>
         </group>

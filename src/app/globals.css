@@ -11,8 +11,9 @@
   --netmind-orange: #FF6B35;
   --netmind-white: #FFFFFF;
   --netmind-gray: #8A8A8A;
-  --netmind-dark: #0A0A0A;
-  --netmind-dark-light: #1A1A1A;
+  /* Background: deep black-red (matches Viettel red theme) */
+  --netmind-dark: #0A0000;
+  --netmind-dark-light: #120000;
 }
 
 * {

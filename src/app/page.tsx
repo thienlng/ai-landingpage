@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 
 export default function Home() {
   return (
-    <main className="relative min-h-screen w-full overflow-hidden bg-[#050505] text-white">
+    <main className="relative min-h-screen w-full overflow-hidden bg-[var(--netmind-dark)] text-white">
       {/* 3D Background */}
       <Scene3D />
 

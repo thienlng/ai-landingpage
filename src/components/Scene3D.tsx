@@ -17,9 +17,10 @@ export default function Scene3D() {
                 gl={{ antialias: true, alpha: true }}
             >
                 <Suspense fallback={null}>
-                    <color attach="background" args={['#050510']} />
+                    {/* Keep in sync with CSS var --netmind-dark (can't reference CSS vars here) */}
+                    <color attach="background" args={['#0A0000']} />
 
-                    <fog attach="fog" args={['#050510', 5, 20]} />
+                    <fog attach="fog" args={['#0A0000', 5, 20]} />
 
                     {/* Lighting */}
                     <ambientLight intensity={0.5} />

@@ -178,3 +178,199 @@ body {
     background-position: 100% 50%;
   }
 }
+
+/* Satellite Hover Box Styles - Tech Card Design */
+.satellite-hover-box {
+  position: relative;
+  width: 240px;
+  background: rgba(8, 8, 12, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  padding: 0;
+  backdrop-filter: blur(12px);
+  animation: satellite-box-appear 0.2s ease-out;
+  overflow: visible;
+}
+
+@keyframes satellite-box-appear {
+  0% {
+    opacity: 0;
+    transform: translateX(-5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Pointer/tail pointing to satellite */
+.satellite-hover-box::before {
+  content: '';
+  position: absolute;
+  bottom: 50%;
+  left: -8px;
+  transform: translateY(50%);
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid rgba(8, 8, 12, 0.92);
+  filter: drop-shadow(-2px 0 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Tech corner accents */
+.satellite-hover-box::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(135deg, var(--accent-color, #E60012) 0%, transparent 40%) top left,
+    linear-gradient(-45deg, var(--accent-color, #E60012) 0%, transparent 40%) bottom right;
+  background-size: 20px 20px, 20px 20px;
+  background-repeat: no-repeat;
+  opacity: 0.3;
+}
+
+/* Tech scan line */
+.satellite-hover-box .tech-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent-color, #E60012), transparent);
+  animation: scanline-move 2s linear infinite;
+  opacity: 0.6;
+}
+
+@keyframes scanline-move {
+  0% { transform: translateY(0); opacity: 0; }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% { transform: translateY(80px); opacity: 0; }
+}
+
+.satellite-hover-header {
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Status indicator dot */
+.satellite-hover-header::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-color, #E60012);
+  box-shadow: 0 0 8px var(--accent-color, #E60012);
+  animation: status-blink 1.5s ease-in-out infinite;
+}
+
+@keyframes status-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.satellite-hover-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--netmind-white);
+  margin: 0;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.satellite-hover-content {
+  padding: 10px 12px 12px;
+}
+
+.satellite-hover-description {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 10px;
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  text-align: left;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Bottom tech accent bar */
+.satellite-hover-accent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  opacity: 0.9;
+}
+
+/* Circuit-like decoration */
+.satellite-hover-circuit {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 16px;
+  height: 16px;
+  opacity: 0.3;
+}
+
+.satellite-hover-circuit::before,
+.satellite-hover-circuit::after {
+  content: '';
+  position: absolute;
+  background: var(--accent-color, #E60012);
+}
+
+.satellite-hover-circuit::before {
+  width: 100%;
+  height: 1px;
+  top: 50%;
+}
+
+.satellite-hover-circuit::after {
+  width: 1px;
+  height: 100%;
+  left: 50%;
+}
+
+/* Data flow dots */
+.satellite-hover-data-dots {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  gap: 3px;
+}
+
+.satellite-hover-data-dots span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--accent-color, #E60012);
+  animation: data-dot-pulse 1s ease-in-out infinite;
+}
+
+.satellite-hover-data-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.satellite-hover-data-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes data-dot-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}

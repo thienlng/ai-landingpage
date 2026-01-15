@@ -130,6 +130,10 @@ function Satellite({ name, description, color, accentColor, radius, speed, yOffs
     const textRef = useRef<THREE.Group>(null)
     const [hovered, setHovered] = useState(false)
 
+    // Refs for pause/resume functionality
+    const timeOffsetRef = useRef(0) // Accumulated pause duration
+    const pauseStartTimeRef = useRef<number | null>(null) // When pause started
+
     // Random rotation axis for the core
     const rotationAxis = useMemo(() => new THREE.Vector3(Math.random(), Math.random(), Math.random()).normalize(), [])
     
@@ -140,24 +144,48 @@ function Satellite({ name, description, color, accentColor, radius, speed, yOffs
 
     useFrame((state) => {
         const t = state.clock.getElapsedTime()
-        const angle = t * speed + initialAngle
+        
+        let effectiveTime: number
+        
+        // Handle pause/resume logic for orbital motion
+        if (hovered) {
+            // If just started hovering, record the pause start time
+            if (pauseStartTimeRef.current === null) {
+                pauseStartTimeRef.current = t
+            }
+            // Use the frozen time (time when pause started minus accumulated offset)
+            effectiveTime = pauseStartTimeRef.current - timeOffsetRef.current
+        } else {
+            // If just stopped hovering, update the time offset
+            if (pauseStartTimeRef.current !== null) {
+                // Add the pause duration to the offset
+                timeOffsetRef.current += t - pauseStartTimeRef.current
+                pauseStartTimeRef.current = null
+            }
+            // Use adjusted time (current time minus accumulated pause duration)
+            effectiveTime = t - timeOffsetRef.current
+        }
+        
+        const angle = effectiveTime * speed + initialAngle
         const x = Math.cos(angle) * radius
         const z = Math.sin(angle) * radius
 
-        // Orbital motion
+        // Orbital motion - uses effectiveTime for smooth pause/resume
         if (groupRef.current) {
-            groupRef.current.position.set(x, yOffset + Math.sin(t * 1.5) * 0.2, z)
+            groupRef.current.position.set(x, yOffset + Math.sin(effectiveTime * 1.5) * 0.2, z)
         }
 
-        // Self rotation
+        // Self rotation - continues even when hovered for visual feedback
         if (coreRef.current) {
-            coreRef.current.rotateOnAxis(rotationAxis, 0.02)
+            coreRef.current.rotateOnAxis(rotationAxis, hovered ? 0.005 : 0.02)
         }
 
-        // Ring rotation
+        // Ring rotation - slows down when hovered
         if (ringRef.current) {
-            ringRef.current.rotation.x = Math.sin(t) * 0.5
-            ringRef.current.rotation.y = t * 2
+            if (!hovered) {
+                ringRef.current.rotation.x = Math.sin(effectiveTime) * 0.5
+                ringRef.current.rotation.y = effectiveTime * 2
+            }
         }
 
         // Text Billboard
